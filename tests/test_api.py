@@ -63,3 +63,7 @@ def test_update_user(api_url, user_data, user_id):
 def test_delete_user(api_url, user_id):
     response = requests.delete(f"{api_url}/users/{user_id}")
     assert response.status_code == 204
+
+def test_not_found(api_url):
+    response = requests.delete(f"{api_url}/failed/23")
+    assert response.status_code == 204
