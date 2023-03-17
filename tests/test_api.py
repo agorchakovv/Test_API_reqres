@@ -50,3 +50,16 @@ def test_create_user(api_url, user_data):
     assert response.json()["name"] == user_data["name"]
     assert response.json()["job"] == user_data["job"]
     assert response.json()["email"] == user_data["email"]
+
+@pytest.mark.parametrize("user_id", [(1), (2)])
+def test_update_user(api_url, user_data, user_id):
+    data=user_data
+    response = requests.put(f"{api_url}/users/{user_id}", data=data)
+    assert response.status_code == 200
+    assert response.json()["name"] == user_data["name"]
+    assert response.json()["job"] == user_data["job"]
+
+@pytest.mark.parametrize("user_id", [(1), (2)])
+def test_delete_user(api_url, user_id):
+    response = requests.delete(f"{api_url}/users/{user_id}")
+    assert response.status_code == 204
