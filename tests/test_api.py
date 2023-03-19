@@ -65,5 +65,5 @@ class TestApiV1:
         assert response.status_code == 204
 
     def test_not_found(self, api_url):
-        response = requests.delete(f"{api_url}/failed/23")
-        assert response.status_code == 204
+        response = requests.get(f"{api_url}/unknown/23")
+        assert response.status_code == 404
