@@ -7,13 +7,13 @@ class BasePage:
         self.base_url = "https://reqres.in/"
 
     def go_to_site(self):
-        return self.driver.get(self.base_url)
+        self.driver.get(self.base_url)
 
     #Explicit waits for finding an element by locator
     def find_element(self, locator,time = 5):
         return WebDriverWait(self.driver,time).until(EC.presence_of_element_located(locator),
-                                                      message=f"Can't find element by locator {locator}")
+                                                    message=f"Can't find elements by locator {locator}")
 
     def find_elements(self, locator,time = 5):
         return WebDriverWait(self.driver,time).until(EC.presence_of_all_elements_located(locator),
-                                                      message=f"Can't find elements by locator {locator}")
+                                                    message=f"Can't find elements by locator {locator}")
