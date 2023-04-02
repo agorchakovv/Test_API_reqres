@@ -2,6 +2,7 @@ import requests
 import pytest
 import random
 import string
+import json
 
 class FuncV1:
     
@@ -10,15 +11,35 @@ class FuncV1:
         return "https://reqres.in/api"
 
     @pytest.fixture(scope="function")
-    def user_data(self, name_length=10):
+    def user_data_for_create(self, name_length = 10):
         letters = string.ascii_lowercase
-        name = ''.join(random.sample(letters, name_length))
+        name = "".join(random.sample(letters, name_length))
         email = name + "@demo.com"
 
         data = {
             "name": name,
             "job": "tester",
             "email": email
+        }
+
+        return data
+    
+    @pytest.fixture(scope="function")
+    def user_data_for_register(self):
+
+        data = {
+           "email": "eve.holt@reqres.in",
+           "password": "pistol"
+        }
+
+        return data
+    
+    @pytest.fixture(scope="function")
+    def user_data_for_login(self):
+
+        data = {
+           "email": "eve.holt@reqres.in",
+           "password": "cityslicka"
         }
 
         return data
@@ -35,7 +56,7 @@ class TestApiV1(FuncV1):
         assert "support" in response.json(), f"Print json ----- {json}"
 
     @pytest.mark.parametrize("user_id, email, first_name, last_name", [(1, "george.bluth@reqres.in", "George", "Bluth"),\
-                                                                    (2, "janet.weaver@reqres.in", "Janet", "Weaver")])
+                                                                       (2, "janet.weaver@reqres.in", "Janet", "Weaver")])
     def test_get_single_user(self, api_url, user_id, email, first_name, last_name):
         response = requests.get(f"{api_url}/users/{user_id}")
 
@@ -50,23 +71,47 @@ class TestApiV1(FuncV1):
 
         assert response.status_code == 404
 
-    def test_post_create_user(self, api_url, user_data):
-        data=user_data
-        response = requests.post(f"{api_url}/users", data=data)
-
-        assert response.status_code == 201
-        assert response.json()["name"] == user_data["name"]
-        assert response.json()["job"] == user_data["job"]
-        assert response.json()["email"] == user_data["email"]
-
-    @pytest.mark.parametrize("user_id", [(1), (2)])
-    def test_put_update_user(self, api_url, user_data, user_id):
-        data=user_data
-        response = requests.put(f"{api_url}/users/{user_id}", data=data)
+    @pytest.mark.parametrize("expected_count", [(6)])
+    def test_get_list_resourse(self, api_url, expected_count):
+        response = requests.get(f"{api_url}/unknown")
+        json = response.json()
 
         assert response.status_code == 200
-        assert response.json()["name"] == user_data["name"]
-        assert response.json()["job"] == user_data["job"]
+        assert len(response.json()["data"]) == expected_count, f"Print json ----- {json}"
+        assert "support" in response.json(), f"Print json ----- {json}"
+
+    @pytest.mark.parametrize("user_id, name, year", [(1, "cerulean", "2000"),\
+                                                     (2, "fuchsia rose", "2001")])
+    def test_get_single_resourse(self, api_url, user_id, name, year):
+        response = requests.get(f"{api_url}/unknown/{user_id}")
+
+        assert response.status_code == 200
+        assert response.json()["data"]["name"] == name
+        assert response.json()["data"]["year"] == int(year)
+
+    @pytest.mark.parametrize("user_id", [(23)])
+    def test_get_single_resourse_not_found(self, api_url, user_id):
+        response = requests.get(f"{api_url}/unknown/{user_id}")
+
+        assert response.status_code == 404
+
+    def test_post_create_user(self, api_url, user_data_for_create):
+        data = user_data_for_create
+        response = requests.post(f"{api_url}/users", data)
+
+        assert response.status_code == 201
+        assert response.json()["name"] == data["name"]
+        assert response.json()["job"] == data["job"]
+        assert response.json()["email"] == data["email"]
+
+    @pytest.mark.parametrize("user_id", [(1), (2)])
+    def test_put_update_user(self, api_url, user_data_for_create, user_id):
+        data = user_data_for_create
+        response = requests.put(f"{api_url}/users/{user_id}", data)
+
+        assert response.status_code == 200
+        assert response.json()["name"] == data["name"]
+        assert response.json()["job"] == data["job"]
 
     @pytest.mark.parametrize("user_id", [(1), (2)])
     def test_delete_user(self, api_url, user_id):
@@ -74,7 +119,43 @@ class TestApiV1(FuncV1):
 
         assert response.status_code == 204
 
-    def test_not_found(self, api_url):
-        response = requests.get(f"{api_url}/unknown/23")
+    def test_post_register(self, api_url, user_data_for_register):
+        data = user_data_for_register
+        response = requests.post(f"{api_url}/register", data)
 
-        assert response.status_code == 404
+        assert response.status_code == 200
+        assert "token" in response.json()
+        assert response.json()["token"] != ""
+
+    def test_post_register_unsuccsesful(self, api_url, user_data_for_register):
+        data = {"email": user_data_for_register["email"]}
+        response = requests.post(f"{api_url}/register", data)
+
+        assert response.status_code == 400
+        assert "error" in response.json()
+        assert response.json()["error"] == "Missing password"
+
+    def test_post_login(self, api_url, user_data_for_login):
+        data = user_data_for_login
+        response = requests.post(f"{api_url}/login", data)
+
+        assert response.status_code == 200
+        assert "token" in response.json()
+        assert response.json()["token"] != ""
+
+    def test_post_login_unseccsesful(self, api_url, user_data_for_login):
+        data = {"email": user_data_for_login["email"]}
+        response = requests.post(f"{api_url}/login", data)
+
+        assert response.status_code == 400
+        assert "error" in response.json()
+        assert response.json()["error"] == "Missing password"
+
+    @pytest.mark.parametrize("expected_count", [(6)])
+    def test_delayed_response_get_list_users(self, api_url, expected_count):
+        response = requests.get(f"{api_url}/users?delay=3")
+        json = response.json()
+
+        assert response.status_code == 200
+        assert len(response.json()["data"]) == expected_count, f"Print json ----- {json}"
+        assert "support" in response.json(), f"Print json ----- {json}"
